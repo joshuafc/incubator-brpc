@@ -59,18 +59,25 @@ int SendC0C1(int fd, bool* is_simple_handshake);
 int WriteWithoutOvercrowded(Socket*, SocketMessagePtr<>& msg);
 }
 
-FlvWriter::FlvWriter(butil::IOBuf* buf)
-    : _write_header(false), _buf(buf) {
+FlvWriter::FlvWriter(butil::IOBuf *buf, bool withVideo, bool withAudio)
+    : _write_header(false), _buf(buf), _withVideo(withVideo), _withAudio(withAudio) {
 }
 
-static char g_flv_header[9] = { 'F', 'L', 'V', 0x01, 0x05, 0, 0, 0, 0x09 };
+static char g_flv_header[9] = { 'F', 'L', 'V', 0x01, 0x00, 0, 0, 0, 0x09 };
+static char g_flv_header_video_exist = 0x1;
+static char g_flv_header_audio_exist = 0x4;
 
-butil::Status FlvWriter::Write(const RtmpVideoMessage& msg) {
+butil::Status FlvWriter::Write(const RtmpVideoMessage &msg) {
     char buf[32];
     char* p = buf;
     if (!_write_header) {
         _write_header = true;
         memcpy(p, g_flv_header, sizeof(g_flv_header));
+        if( _withVideo )
+            p[4] |= g_flv_header_video_exist;
+        if( _withAudio )
+            p[4] |= g_flv_header_audio_exist;
+
         p += sizeof(g_flv_header);
         policy::WriteBigEndian4Bytes(&p, 0); // PreviousTagSize0
     }
@@ -91,12 +98,16 @@ butil::Status FlvWriter::Write(const RtmpVideoMessage& msg) {
     return butil::Status::OK();
 }
 
-butil::Status FlvWriter::Write(const RtmpAudioMessage& msg) {
+butil::Status FlvWriter::Write(const RtmpAudioMessage &msg) {
     char buf[32];
     char* p = buf;
     if (!_write_header) {
         _write_header = true;
         memcpy(p, g_flv_header, sizeof(g_flv_header));
+        if( _withVideo )
+            p[4] |= g_flv_header_video_exist;
+        if( _withAudio )
+            p[4] |= g_flv_header_audio_exist;
         p += sizeof(g_flv_header);
         policy::WriteBigEndian4Bytes(&p, 0); // PreviousTagSize0
     }
@@ -120,12 +131,17 @@ butil::Status FlvWriter::Write(const RtmpAudioMessage& msg) {
     return butil::Status::OK();
 }
 
-butil::Status FlvWriter::WriteScriptData(const butil::IOBuf& req_buf, uint32_t timestamp) {
+butil::Status
+FlvWriter::WriteScriptData(const butil::IOBuf &req_buf, uint32_t timestamp) {
     char buf[32];
     char* p = buf;
     if (!_write_header) {
         _write_header = true;
         memcpy(p, g_flv_header, sizeof(g_flv_header));
+        if( _withVideo )
+            p[4] |= g_flv_header_video_exist;
+        if( _withAudio )
+            p[4] |= g_flv_header_audio_exist;
         p += sizeof(g_flv_header);
         policy::WriteBigEndian4Bytes(&p, 0); // PreviousTagSize0
     }
@@ -173,7 +189,7 @@ butil::Status FlvWriter::Write(const RtmpMetaData& metadata) {
     return WriteScriptData(req_buf, metadata.timestamp);
 }
 
-FlvReader::FlvReader(butil::IOBuf* buf)
+    FlvReader::FlvReader(butil::IOBuf* buf)
     : _read_header(false), _buf(buf) {
 }
 

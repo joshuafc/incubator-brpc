@@ -389,20 +389,21 @@ enum FlvTagType {
 class FlvWriter {
 public:
     // Start appending FLV tags into the buffer
-    explicit FlvWriter(butil::IOBuf* buf);
-    
+    explicit FlvWriter(butil::IOBuf *buf, bool withVideo, bool withAudio);
     // Append a video/audio/metadata/cuepoint message into the output buffer.
-    butil::Status Write(const RtmpVideoMessage&);
-    butil::Status Write(const RtmpAudioMessage&);
+    butil::Status Write(const RtmpVideoMessage &msg);
+    butil::Status Write(const RtmpAudioMessage &msg);
     butil::Status Write(const RtmpMetaData&);
     butil::Status Write(const RtmpCuePoint&);
 
 private:
-    butil::Status WriteScriptData(const butil::IOBuf& req_buf, uint32_t timestamp);
+    butil::Status WriteScriptData(const butil::IOBuf &req_buf, uint32_t timestamp);
 
 private:
     bool _write_header;
     butil::IOBuf* _buf;
+    bool _withVideo {true};
+    bool _withAudio {true};
 };
 
 class FlvReader {
