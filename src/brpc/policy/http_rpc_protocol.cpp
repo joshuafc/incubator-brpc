@@ -1034,8 +1034,10 @@ FindMethodPropertyByURI(const std::string& uri_path, const Server* server,
     // extension names. Say "*.txt => get_text_file, *.mp4 => download_mp4".
     ServerPrivateAccessor accessor(server);
     if (accessor.global_restful_map()) {
-        return accessor.global_restful_map()->FindMethodProperty(
+        auto mp = accessor.global_restful_map()->FindMethodProperty(
             uri_path, unresolved_path);
+        if(mp)
+            return mp;
     }
 
     // Empty uri not registered at restful_mappings. Use IndexServer.
